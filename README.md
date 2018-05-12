@@ -92,7 +92,7 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 
 ![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model.png?raw=true)
 
-ポイントは、第1層と第5層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第5層では、"comment_text"の1サンプルにおいて、**学習済みモデルに登録されていない新出単語が混入している比率**を計算した特徴量を連結させています。
+ポイントは、第1層と第6層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第5層では、"comment_text"の1サンプルにおいて、**学習済みモデルに登録されていない新出単語が混入している比率**を計算した特徴量を連結させています。
 
 ## 結果
 
