@@ -51,14 +51,18 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 
 次のように、"comment_text"カラムに文字列が入力データとして与えられ、この入力データに対して、"is_toxic"カラムにコメントを
 `1:有害, 0:無害`で定義します。 
-![データの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/classifier.png?raw=true)
+
+
+![データの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/data.png?raw=true)
 
 
 この形式のデータセットを用いて、未知の"comment_text"入力が与えられたときに"is_toxic"（有害度）を予測する分類器をつくります。
-![分類器](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/data.png?raw=true)
 
 
-## 特徴抽出の手法
+![分類器](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/classifier.png?raw=true)
+
+
+## 特徴抽出の手法
 ### コーパスの用意
 
 まとめブログを中心に、PV数の多いブログのコメントを収集してコーパスを用意し、分散表現モデル（次項で説明）を学習します。本リポジトリでは、約~MBのコーパスを学習させています。
@@ -80,7 +84,7 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 
 #### 使用する分散表現モデル
 
-[Toxic Comment Classification Challengeの上位者のコメント](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52644)によると、複数の分散表現モデルを使用した方がより高性能な分類器を構築できるようです。そこで、提案する有害コメント分類器では、fastTextとGloVeを両方使用しています。
+[Toxic Comment Classification Challengeの上位者のコメント](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52644)によると、複数の分散表現モデルを使用した方がより高性能な分類器を構築できるようです。そこで、提案する有害コメント分類器では、fastTextとGloVeを両方使用しています。
 
 ### 分類器
 
@@ -88,7 +92,7 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 
 ![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model.png?raw=true)
 
-ポイントは、第1層と第5層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第5層では、"comment_text"の1サンプルにおいて、**学習済みモデルに登録されていない新出単語が混入している比率**を計算した特徴量を連結させています。
+ポイントは、第1層と第5層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第5層では、"comment_text"の1サンプルにおいて、**学習済みモデルに登録されていない新出単語が混入している比率**を計算した特徴量を連結させています。
 
 ## 結果
 
