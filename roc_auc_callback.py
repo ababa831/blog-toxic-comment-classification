@@ -24,9 +24,9 @@ class RocAucEvaluation(Callback):
                 # update cross validation best score
                 self.cv_bestscore = score
                 if self.fold_idx > 0:
-                    self.model.save("best_model_{:d}fold_{:.6f}.h5".format(self.fold_idx, score))
+                    self.model.save("best_model.h5")
                 else:
-                    self.model.save("best_model_no_cross_val_{:.6f}.h5".format(score))
+                    self.model.save("best_model_no_cross_val.h5")
                 print("ROC-AUC score was improved!")
             else:
                 print("ROC-AUC score wasn't improved!")
