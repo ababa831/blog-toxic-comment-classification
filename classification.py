@@ -122,7 +122,7 @@ def pred(test_path):
         model = load_model(PRETRAINED_MODEL_PATH)
     except:
         sys.exit("学習済みモデルが読み込めません")
-    outputs = model.fit(X_test_dict, batch_size=batch_size, verbose=1
+    outputs = model.fit(X_test_dict, batch_size=batch_size, verbose=1)
     
     print("テストデータの推論が終了しました。結果を保存しています。")
     test_df["is_toxic"] = outputs
