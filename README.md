@@ -75,7 +75,7 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 日本語の文章は、単語の間にスペースが入っていないので、文字列をベクトルとして扱うには、予め単語同士を分かち書きする必要があります。分かち書きには、[Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)を用います．
 
-テキストをTokenizerクラスで単純にベクトル化するだけでも，それなりに良好な性能を発揮しますが，更に汎化性能を上げたいので，学習済み分散表現モデルによって重み付けを行います．
+文字列をTokenizerクラスで単純にベクトル化するだけでも，それなりに良好な性能を発揮しますが，更に汎化性能を上げたいので，学習済み分散表現モデルによって重み付けを行います．
 
 ### 学習済み分散表現モデルによる重みづけ
 
@@ -103,7 +103,7 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 ![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model.png?raw=true)
 
-ポイントは、第1層と第6層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第6層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
+ポイントは、第1層と第6層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルを用いて重み付けした2種類の特徴量**を連結させています。第6層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
 
 <br>
 
