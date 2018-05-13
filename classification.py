@@ -2,19 +2,24 @@
 import sys
 import os
 import gc
+import logging
 import pandas as pd
 import sklearn.model_selection import train_test_split
-# TODO: 使わないモジュール削除
 from keras.models import Model
 from keras.layers import Input, Dense, Embedding, SpatialDropout1D, concatenate
 from keras.layers import CuDNNLSTM, CuDNNGRU, Bidirectional
 from keras.layers import GlobalAveragePooling1D, GlobalMaxPooling1D
 from keras.preprocessing import text, sequence
 from keras.optimizers import Adam
-import logging
-import MeCab
-
+# Google Client Libraries
+from google.cloud import language
+from google.cloud.language import enums
+from google.cloud.language import types
+# roc_auc_callback.py in the current directory
 import roc_auc_callback as auc
+
+
+client = language.LanguageServiceClient()
 
 FTEXT_PRETRAINED_PATH = './fast_blog.txt'
 GLV_PRETRAINED_PATH = './glv_blog.txt'
@@ -60,8 +65,8 @@ def train(train_path, ipadic_path):
         batch_size = 5000
         epochs = 2
         model = _get_model(len_train, 
-                           fasttext_weight=ftext_wmatrix, 
-                           glove_weight=glv_wmatrix, 
+                           ftext_wmatrix, 
+                           glv_wmatrix, 
                            seq_maxlen=seq_maxlen, 
                            num_words=num_words, 
                            embed_size=embed_size,
@@ -91,7 +96,7 @@ def pred_text(input_text):
 
 def _get_feature(train_df, ipadic_path, seq_maxlen=100, num_words=20000):
     """コメント(文字列) -> トークン化された特徴, ラベル"""
-    train_df = _convert_wakati(train_df)
+    train_df["comment_text"] = train_df["comment_text"].apply(lambda text: _get_separeted(text))
     train_np = train_df["comment_text"].values
     tokenizer = text.Tokenizer(num_words=num_words)
     tokenizer.fit_on_texts(list(train_np))
@@ -101,18 +106,18 @@ def _get_feature(train_df, ipadic_path, seq_maxlen=100, num_words=20000):
     
     return X_train_np, y_train_np, tokenizer
 
-def _get_wordvector_coeff(train_df, tokenizer, num_words, embed_size):
+def _get_wordvector_coeff(train_df, tokenizer, num_words=20000, embed_size=128):
     """
     トークン化した各単語に対応する学習済みfastText, GloVeの重みを抽出。 
     また、学習済みfastText, GloVeに存在しない単語をnew_words_listとして抽出し、
     train_df中にどのくらい新語が含まれているか計算する。
     """
     ftext_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
-                                                         pretrained_path=FTEXT_PRETRAINED_PATH, 
+                                                         FTEXT_PRETRAINED_PATH, 
                                                          num_words=num_words,
                                                          embed_size=embed_size)
     glv_wmatrix, _  = _get_weighted_matrix(tokenizer, 
-                                           pretrained_path=GLV_PRETRAINED_PATH, 
+                                           GLV_PRETRAINED_PATH, 
                                            num_words=num_words,
                                            embed_size=embed_size)
 
@@ -124,18 +129,15 @@ def _get_wordvector_coeff(train_df, tokenizer, num_words, embed_size):
 
     return ftext_wmatrix, glv_wmatrix, unique_rate_np
 
-def _convert_wakati(train_df, ipadic_path):
-    #'./mecab/mecab-ipadic-neologd/build/mecab-ipadic-2.7.0-20070801-neologd-20180108'
-    try:
-        mecab = MeCab.Tagger('-Owakati -d ' + ipadic_path)
-    except RuntimeError:
-        sys.exit("MeCab用辞書のパスが正しく指定されていません。")
-    else:
-        train_df["comment_text"] = train_df["comment_text"].apply(lambda text: mecab.parse(text))
+def _get_separeted(text):
+    """Natural Language APIを用いて，文章を単語ごとに分かち書きする．"""
+    document = types.Document(content=text, type=enums.Document.Type.PLAIN_TEXT)
+    syntax_response = client.analyze_syntax(document=document)
+    separeted_text = " ".join([s.text.content for s in syntax_response.tokens])
+    
+    return separeted_text
 
-        return train_df
-
-def _get_weighted_matrix(tokenizer, pretrained_path, num_words, embed_size):
+def _get_weighted_matrix(tokenizer, pretrained_path, num_words=20000, embed_size=128):
     """学習済み単語ベクトルを読み込んで、特徴の重みを計算"""
     embed_idx = dict(_get_coefs(*word_and_vector.strip().split()) for word_and_vector in open(pretrained_path))
     all_embs = np.stack(embed_idx.values())
@@ -154,7 +156,7 @@ def _get_weighted_matrix(tokenizer, pretrained_path, num_words, embed_size):
 
 def _get_coefs(word, *arr): return word, np.asarray(arr, dtype='float32')
 
-def _get_input_dict(input_np, seq_maxlen):
+def _get_input_dict(input_np, seq_maxlen=100):
     """2種類のモデル（fastText, GloVe）で重み付けできるようにdictを作成"""
     input_dict = {
                   'ftext': input_np[:, :seq_maxlen, :],
@@ -164,7 +166,8 @@ def _get_input_dict(input_np, seq_maxlen):
 
     return input_dict
 
-def _get_model(len_train, fasttext_weight, glove_weight, seq_maxlen, num_words, embed_size, batch_size, epochs):
+def _get_model(len_train, fasttext_weight, glove_weight, seq_maxlen=100, num_words=20000, 
+               embed_size=128, batch_size=5000, epochs=2):
     inp_ftext = Input(shape=(seq_maxlen, ), name='ftext')
     inp_glv = Input(shape=(seq_maxlen, ), name='glv')
     inp_urate = Input(shape=(1), name='uniq_rate')
@@ -200,21 +203,18 @@ if __name__ == '__main__':
     if '--train' in sys.argv:
         try:
             train_path = sys.argv[2]
-            ipadic_path = sys.argv[3]
-            train(train_path, ipadic_path)
+            train(train_path)
         except IndexError:
-            sys.exit("学習データまたは辞書のパスが指定されていません。")
+            sys.exit("学習データのパスが指定されていません。")
     if '--pred' in sys.argv:
         try:
             test_path = sys.argv[2]
-            ipadic_path = sys.argv[3]
-            pred(test_path, ipadic_path)
+            pred(test_path)
         except IndexError:
-            sys.exit("テストデータまたは辞書のパスが指定されていません。")
+            sys.exit("テストデータのパスが指定されていません。")
     if '--pred-text' in sys.argv:
         try:
             input_text = sys.argv[2]
-            ipadic_path = sys.argv[3]
-            pred_text(input_text, ipadic_path)
+            pred_text(input_text)
         except IndexError:
-            sys.exit("推論対象の文字列または辞書のパスが指定されていません。")       
+            sys.exit("推論対象の文字列のパスが指定されていません。")       

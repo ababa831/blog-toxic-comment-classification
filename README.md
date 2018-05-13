@@ -12,15 +12,16 @@
 
 本リポジトリでは、収集したblogコメントのデータから、有害/無害なコメントを分類するコードを公開します。
 
-（尚、収集したコメントデータは公開致しませんので、各自ご用意ください）
+（注：収集したコメントデータは公開致しませんので、各自ご用意ください）
 
+<br>
 
 ## 使い方
 ### Requirements
 
 - NVIDIA製GPUを搭載したPC (cuDNN LSTM, GRUを用いた分類器を使うため)
 - GPU版TensorFlowが動作する環境 
-- [mecab-ipadic-NEologd](https://github.com/neologd/mecab-ipadic-neologd)が動作する環境
+- [Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)
 
 ### 使用手順
 
@@ -28,7 +29,7 @@
 
 1. 本リポジトリをgit cloneします。
 2. blog-toxic-comment-classificationディレクトリに移動して、`$ pip install -r requirements.txt`を実行し、必要なライブラリをインストールします。
-3. `$ python classification.py --pred <テストデータのパス> --dic <MeCab辞書のパス>`を実行します。
+3. `$ python classification.py --pred <テストデータのパス>`を実行します。
 4. 結果がcsvファイルとして、同ディレクトリ内に出力されます。
 
 手順3において、次のように1コメントずつ指定することもできます。
@@ -42,10 +43,11 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 ```
 
 学習を行いたい場合は、以下を実行します。
-```$ python train.py --train <学習データのパス> --dic <MeCab辞書のパス>```
+```$ python train.py --train <学習データのパス>```
 
 モデルは、同ディレクトリ内に保存されます。
 
+<br>
 
 ## 問題設定
 
@@ -62,13 +64,20 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 ![分類器](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/classifier.png?raw=true)
 
 
+<br>
+
+
 ## 特徴抽出の手法
-### コーパスの用意
 
-まとめブログを中心に、PV数の多いブログのコメントを収集してコーパスを用意し、分散表現モデル（次項で説明）を学習します。本リポジトリでは、約~MBのコーパスを学習させています。
+### テキストのベクトル化
 
+Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用いて，単語を数値ラベルに変換して文字列をベクトルとして扱います．
 
-### 分散表現で"comment_text"から単語ベクトルを取得
+日本語の文章は、単語の間にスペースが入っていないので、文字列をベクトルとして扱うには、予め単語同士を分かち書きする必要があります。分かち書きには、[Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)を用います．
+
+テキストをTokenizerクラスで単純にベクトル化するだけでも，それなりに良好な性能を発揮しますが，更に汎化性能を上げたいので，学習済み分散表現モデルによって重み付けを行います．
+
+### 学習済み分散表現モデルによる重みづけ
 
 分散表現(単語埋め込み、 Word embedding)とは、単語を200次元等の低次な実数ベクトルで表現する技術です。
 代表的な分散表現モデルに[Skip-gram, CBOW](https://arxiv.org/abs/1411.2738), [fasttext](https://github.com/facebookresearch/fastText), [GloVe](https://nlp.stanford.edu/projects/glove/)があります。
@@ -78,21 +87,25 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
  - 近い意味の単語を、近いベクトルとして表現でき、[単語の散らばり具合を可視化](https://sites.google.com/site/iwanamidatascience/_/rsrc/1468857206744/vol2/word-embedding/words.5k.thumbnail.png?height=600&width=600)できます。
  - ベクトル同士の演算で意味の関係を表現できます。（例：　図書館 - 本 = ホール）
 
-#### 分かち書き
-
-日本語の文章は、単語の間にスペースが入っていないので、個々の単語を分散表現として扱うには、予め単語同士を分かち書きする必要があります。分かち書きには、形態素解析ライブラリの[MeCab](http://taku910.github.io/mecab/)を用います。辞書は、今回はまとめ系ブログに書き込まれる単語を想定しているので、新語・固有表現に強い[mecab-ipadic-NEologd](https://github.com/neologd/mecab-ipadic-neologd)を使用しています。
-
 #### 使用する分散表現モデル
 
-[Toxic Comment Classification Challengeの上位者のコメント](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52644)によると、複数の分散表現モデルを使用した方がより高性能な分類器を構築できるようです。そこで、提案する有害コメント分類器では、fastTextとGloVeを両方使用しています。
+[Toxic Comment Classification Challengeの上位者のコメント](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52644)によると、複数の分散表現モデルで重み付けした方がより高性能な分類器を構築できるようです。そこで、提案する有害コメント分類器では、fastTextとGloVeを両方使用しています。
 
-### 分類器
+### コーパス
+
+まとめブログを中心に、PV数の多いブログのコメントを収集してコーパスを用意し、分散表現モデルを学習しました。本リポジトリでは、約~MBのコーパスを学習させています。
+
+<br>
+
+## 分類器
 
 コメントは単語の系列データとして扱われるため、分類器にはBidirectional LSTM, Bidirectional GRUを組み合わせた、ニューラルネットワークモデルを構成します。構成は以下のようになります。
 
 ![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model.png?raw=true)
 
-ポイントは、第1層と第6層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第5層では、"comment_text"の1サンプルにおいて、**学習済みモデルに登録されていない新出単語が混入している比率**を計算した特徴量を連結させています。
+ポイントは、第1層と第6層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルをもちいて重み付けした2種類の特徴量**を連結させています。第5層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
+
+<br>
 
 ## 結果
 
