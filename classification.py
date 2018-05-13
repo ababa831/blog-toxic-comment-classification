@@ -25,7 +25,7 @@ FTEXT_PRETRAINED_PATH = './fast_blog.txt'
 GLV_PRETRAINED_PATH = './glv_blog.txt'
 
 
-def train(train_path, ipadic_path):
+def train(train_path):
     try:
         print("学習ファイルを読み込んでいます")
         train_df = pd.read_csv(train_path, usecols=["comment_text", "is_toxic"])
@@ -38,7 +38,6 @@ def train(train_path, ipadic_path):
         num_words = 20000
         embed_size=128
         X_train_np, y_train_np, tokenizer = _get_feature(train_df, 
-                                                         ipadic_path, 
                                                          seq_maxlen=seq_maxlen, 
                                                          num_words=num_words)
         ftext_wmatrix, glv_wmatrix, unique_rate_np = _get_wordvector_coeff(train_df, 
@@ -94,7 +93,7 @@ def pred_text(input_text):
     # TODO:書く
     pass
 
-def _get_feature(train_df, ipadic_path, seq_maxlen=100, num_words=20000):
+def _get_feature(train_df, seq_maxlen=100, num_words=20000):
     """コメント(文字列) -> トークン化された特徴, ラベル"""
     train_df["comment_text"] = train_df["comment_text"].apply(lambda text: _get_separeted(text))
     train_np = train_df["comment_text"].values
