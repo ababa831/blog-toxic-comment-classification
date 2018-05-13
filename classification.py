@@ -72,13 +72,13 @@ def train(train_path):
     batch_size = 5000
     epochs = 2
     model = _get_model(len_train, 
-                        ftext_wmatrix, 
-                        glv_wmatrix, 
-                        seq_maxlen=seq_maxlen, 
-                        num_words=num_words, 
-                        embed_size=embed_size,
-                        batch_size=batch_size,
-                        epochs=epochs)
+                       ftext_wmatrix, 
+                       glv_wmatrix, 
+                       seq_maxlen=seq_maxlen, 
+                       num_words=num_words, 
+                       embed_size=embed_size,
+                       batch_size=batch_size,
+                       epochs=epochs)
     false_cross_validation = 0
     auc_callback = auc.RocAucEvaluation(validation_data=(X_val_np, y_val_np),
                                         fold_idx=false_cross_validation)
