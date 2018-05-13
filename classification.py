@@ -46,12 +46,12 @@ def train(train_path):
     num_words = 20000
     embed_size=128
     X_train_np, y_train_np, tokenizer = _get_train_feature(train_df, 
-                                                            seq_maxlen=seq_maxlen, 
-                                                            num_words=num_words)
+                                                           seq_maxlen=seq_maxlen, 
+                                                           num_words=num_words)
     ftext_wmatrix, glv_wmatrix, unique_rate_np = _get_train_wvector_coeff(train_df, 
-                                                                            tokenizer, 
-                                                                            num_words=num_words,
-                                                                            embed_size=embed_size)
+                                                                          tokenizer, 
+                                                                          num_words=num_words,
+                                                                          embed_size=embed_size)
     X_train_np = np.concatenate([X_train_np, unique_rate], axis=1)
     del train_df
     gc.collect()
@@ -59,9 +59,9 @@ def train(train_path):
     seed = 223
     val_ratio = 0.05
     X_train_np, X_val_np, y_train_np, y_val_np = train_test_split(X_train_np,
-                                                                    y_train_np, 
-                                                                    random_state=seed, 
-                                                                    test_size=val_ratio)
+                                                                  y_train_np, 
+                                                                  random_state=seed, 
+                                                                  test_size=val_ratio)
     len_train = len(X_train_np)
 
     X_train_dict = _get_input_dict(X_train_np, seq_maxlen)
@@ -111,9 +111,9 @@ def pred(test_path):
     embed_size=128
     X_test_np, tokenizer = _get_test_feature(test_df, seq_maxlen=seq_maxlen, num_words=num_words)
     ftext_wmatrix, glv_wmatrix, unique_rate_np = _get_test_wvector_coeff(test_df, 
-                                                                            tokenizer, 
-                                                                            num_words=num_words,
-                                                                            embed_size=embed_size)
+                                                                         tokenizer, 
+                                                                         num_words=num_words,
+                                                                         embed_size=embed_size)
     X_test_np = np.concatenate([X_test_np, unique_rate], axis=1)
     X_test_dict = _get_input_dict(X_test_np, seq_maxlen)
 
