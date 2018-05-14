@@ -40,7 +40,8 @@ def train(train_path):
     except FileNotFoundError:
         sys.exit("学習ファイルが見つかりません")
     except ValueError:
-        sys.exit("学習データ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"、\n 出力データのカラム名を\"is_toxic\"と指定してください。")
+        sys.exit("学習データ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"、\
+                 \n 出力データのカラム名を\"is_toxic\"と指定してください。")
     
     seq_maxlen = 100
     num_words = 20000
