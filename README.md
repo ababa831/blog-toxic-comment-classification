@@ -77,7 +77,7 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 文字列をTokenizerクラスで単純にベクトル化するだけでも，それなりに良好な性能を発揮しますが，更に汎化性能を上げたいので，学習済み分散表現モデルによって重み付けを行います．
 
-### 学習済み分散表現モデルによる重み付け
+### 学習済み分散表現モデルによる重みづけ
 
 分散表現(単語埋め込み、 Word embedding)とは、単語を200次元等の低次な実数ベクトルで表現する技術です。
 代表的な分散表現モデルに[Skip-gram, CBOW](https://arxiv.org/abs/1411.2738), [fasttext](https://github.com/facebookresearch/fastText), [GloVe](https://nlp.stanford.edu/projects/glove/)があります。
