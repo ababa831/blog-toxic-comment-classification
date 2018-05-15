@@ -28,7 +28,7 @@
 学習済みモデル付きのため、以下の手順で有害なコメントを分類できます。
 
 1. 本リポジトリをgit cloneします。
-2. [ここ](https://drive.google.com/open?id=0ByFQ96A4DgSPUm9wVWRLdm5qbmc)と[ここ](https://www.dropbox.com/s/7digqy9ag3b9xeu/ja.tar.gz?dl=0)から、学習済みの日本語版分散表現モデルをDLして，カレントディレクトリに置き、2種類のvecファイル名を`fast_neo.vec`,`fast_wiki.vec`に変更します。
+2. [ここ](https://drive.google.com/open?id=0ByFQ96A4DgSPUm9wVWRLdm5qbmc)と[ここ](https://www.dropbox.com/s/7digqy9ag3b9xeu/ja.tar.gz?dl=0)から、学習済みの日本語版分散表現モデルをDLして、カレントディレクトリに置き、2種類のvecファイル名を`fast_neo.vec`, `fast_wiki.vec`に変更します。
 3. blog-toxic-comment-classificationディレクトリに移動して、`$ pip install -r requirements.txt`を実行し、必要なライブラリをインストールします。
 4. `$ python classification.py --pred <テストデータのパス>`を実行します。
 5. 結果がcsvファイルとして、同ディレクトリ内に出力されます。
