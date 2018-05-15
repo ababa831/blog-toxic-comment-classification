@@ -71,11 +71,11 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 
 ### テキストのベクトル化
 
-Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用いて，単語を数値ラベルに変換して文字列をベクトルとして扱います．
+Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用いて、単語を数値ラベルに変換して文字列をベクトルとして扱います。
 
-日本語の文章は、単語の間にスペースが入っていないので、文字列をベクトルとして扱うには、予め単語同士を分かち書きする必要があります。分かち書きには、[Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)を用います．
+日本語の文章は、単語の間にスペースが入っていないので、文字列をベクトルとして扱うには、予め単語同士を分かち書きする必要があります。分かち書きには、[Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)を用います。
 
-文字列をTokenizerクラスで単純にベクトル化するだけでも，それなりに良好な性能を発揮しますが，更に汎化性能を上げたいので，学習済み分散表現モデルによって重み付けを行います．
+文字列をTokenizerクラスで単純にベクトル化するだけでも、それなりに良好な性能を発揮しますが、更に汎化性能を上げたいので、学習済み分散表現モデルによって重み付けを行います。
 
 ### 学習済み分散表現モデルによる重みづけ
 
@@ -89,12 +89,14 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 #### 使用する分散表現モデル
 
-[Toxic Comment Classification Challengeの上位者のコメント](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52644)によると、複数の分散表現モデルで重み付けした方がより高性能な分類器を構築できるようです。そこで、提案する有害コメント分類器では、fastTextとGloVeを両方使用しています。
+[Toxic Comment Classification Challengeの上位者のコメント](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge/discussion/52644)によると、複数の分散表現で重み付けした方がより高性能な分類器を構築できるようです。~~そこで、提案する有害コメント分類器では、fastTextとGloVeを両方使用しています。~~
+そこで、異なるコーパスで学習させた2種類のfastTextモデルを使用しています。
 
 ### コーパス
 
 ~~まとめブログを中心に、PV数の多いブログのコメントを収集してコーパスを用意し、分散表現モデルを学習しました。本リポジトリでは、約~MBのコーパスを学習させています。~~
-学習済みの日本語版[fastText](https://qiita.com/Hironsan/items/8f7d35f0a36e0f99752c#fasttext)，[GloVe](https://github.com/Kyubyong/wordvectors#pre-trained-models)を利用します．
+
+学習済みの日本語版[fastText](https://qiita.com/Hironsan/items/8f7d35f0a36e0f99752c#fasttext)、[GloVe](https://github.com/Kyubyong/wordvectors#pre-trained-models)を利用します。
 
 <br>
 
@@ -102,9 +104,9 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 コメントは単語の系列データとして扱われるため、分類器にはBidirectional LSTM, Bidirectional GRUを組み合わせた、ニューラルネットワークモデルを構成します。構成は以下のようになります。
 
-![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model.png?raw=true)
+![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model_only_ftext.png?raw=true)
 
-ポイントは、第1層と第6層です。第1層では、**"comment_text"を学習済みfastText・GloVeモデルを用いて重み付けした2種類の特徴量**を連結させています。第6層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
+ポイントは、第1層と第6層です。第1層では、**"comment_text"をfastText~~・GloVeモデル~~を用いて重み付けした2種類の特徴量**を連結させています。第6層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
 
 <br>
 
