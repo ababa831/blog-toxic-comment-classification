@@ -23,11 +23,11 @@ import roc_auc_callback as auc
 
 client = language.LanguageServiceClient()
 
-FTEXT_PRETRAINED_PATH = './fast_neologd.vec'
-GLV_PRETRAINED_PATH = './glv_neologd.vec'
+FTEXT_PRETRAINED_NEOLOGD_PATH = './fast_neo.vec'
+FTEXT_PRETRAINED_WIKI_PATH = './fast_wiki.vec'
 TOKENIZER_PATH = './tokenizer.pkl'
-FTEXT_WEIGHTED_MATRIX_PATH ='./fast_wmatrix.pkl' 
-GLV_WEIGHTED_MATRIX_PATH ='./glv_wmatrix.pkl' 
+FTEXT_NEO_WEIGHTED_MATRIX_PATH ='./fast_neo_wmatrix.pkl' 
+FTEXT_WIKI_WEIGHTED_MATRIX_PATH ='./fast_wiki_wmatrix.pkl' 
 NEW_WORDS_LIST_PATH = './new_wordlist.pkl'
 MODEL_HISTORY_PATH = './train_hist/hist.pkl'
 PRETRAINED_MODEL_PATH = './best_model_no_cross_val.h5'
@@ -48,10 +48,10 @@ def train(train_path):
     X_train_np, y_train_np, tokenizer = _get_train_feature(train_df, 
                                                            seq_maxlen=seq_maxlen, 
                                                            num_words=num_words)
-    ftext_wmatrix, glv_wmatrix, unique_rate_np = _get_train_wvector_coeff(train_df, 
-                                                                          tokenizer, 
-                                                                          num_words=num_words,
-                                                                          embed_size=embed_size)
+    ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np = _get_train_wvector_coeff(train_df, 
+                                                                                     tokenizer, 
+                                                                                     num_words=num_words,
+                                                                                     embed_size=embed_size)
     X_train_np = np.concatenate([X_train_np, unique_rate], axis=1)
     del train_df
     gc.collect()
@@ -72,8 +72,8 @@ def train(train_path):
     batch_size = 5000
     epochs = 2
     model = _get_model(len_train, 
-                       ftext_wmatrix, 
-                       glv_wmatrix, 
+                       ftext_neo_wmatrix, 
+                       ftext_wiki_wmatrix, 
                        seq_maxlen=seq_maxlen, 
                        num_words=num_words, 
                        embed_size=embed_size,
@@ -110,10 +110,10 @@ def pred(test_path):
     num_words = 20000
     embed_size=128
     X_test_np, tokenizer = _get_test_feature(test_df, seq_maxlen=seq_maxlen, num_words=num_words)
-    ftext_wmatrix, glv_wmatrix, unique_rate_np = _get_test_wvector_coeff(test_df, 
-                                                                         tokenizer, 
-                                                                         num_words=num_words,
-                                                                         embed_size=embed_size)
+    ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np = _get_test_wvector_coeff(test_df, 
+                                                                                    tokenizer, 
+                                                                                    num_words=num_words,
+                                                                                    embed_size=embed_size)
     X_test_np = np.concatenate([X_test_np, unique_rate], axis=1)
     X_test_dict = _get_input_dict(X_test_np, seq_maxlen)
 
@@ -156,21 +156,21 @@ def _get_train_wvector_coeff(train_df, tokenizer, num_words=20000, embed_size=12
     また、学習済みfastText, GloVeに存在しない単語をnew_words_listとして抽出し、
     train_df中にどのくらい新語が含まれているか計算する。
     """
-    ftext_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
-                                                         FTEXT_PRETRAINED_PATH, 
-                                                         num_words=num_words,
-                                                         embed_size=embed_size)
-    glv_wmatrix, _  = _get_weighted_matrix(tokenizer, 
-                                           GLV_PRETRAINED_PATH, 
-                                           num_words=num_words,
-                                           embed_size=embed_size)
+    ftext_neo_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
+                                                             FTEXT_PRETRAINED_NEOLOGD_PATH, 
+                                                             num_words=num_words,
+                                                             embed_size=embed_size)
+    ftext_wiki_wmatrix, _  = _get_weighted_matrix(tokenizer, 
+                                                  FTEXT_PRETRAINED_WIKI_PATH, 
+                                                  num_words=num_words,
+                                                  embed_size=embed_size)
     train_df["word_list"] = train_df["comment_text"].apply(lambda text: text.split())
     # word_list中にnew_word_listの単語がどのくらい含まれているか数える
     unique_rate_np = train_df["word_lists"].apply(lambda word_list: 
                                                   np.sum([word for word in word_list if word in new_word_list])
                                                   / len(word_list)).astype("float16").values
 
-    return ftext_wmatrix, glv_wmatrix, unique_rate_np
+    return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np
 
 def _get_separeted(text):
     """Natural Language APIを用いて，文章を単語ごとに分かち書きする．"""
@@ -261,22 +261,22 @@ def _get_test_feature(test_df, seq_maxlen=300, num_words=20000):
 
 def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=128):
     try:
-        with open(FTEXT_WEIGHTED_MATRIX_PATH, 'rb') as handle:
-            ftext_wmatrix = pickle.load(handle)
-        with open(GLV_WEIGHTED_MATRIX_PATH, 'rb') as handle:
-            glv_wmatrix = pickle.load(handle)
+        with open(FTEXT_NEO_WEIGHTED_MATRIX_PATH, 'rb') as handle:
+            ftext_neo_wmatrix = pickle.load(handle)
+        with open(FTEXT_WIKI_WEIGHTED_MATRIX_PATH, 'rb') as handle:
+            ftext_wiki_wmatrix = pickle.load(handle)
         with open(NEW_WORDS_LIST_PATH, 'rb') as handle:
             new_words_list = pickle.load(handle)
     except:
         print("weighted matrix, new words listが一部または全て存在しないので，作成します。")
-        ftext_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
-                                                             FTEXT_PRETRAINED_PATH, 
-                                                             num_words=num_words,
-                                                             embed_size=embed_size)
-        glv_wmatrix, _  = _get_weighted_matrix(tokenizer, 
-                                               GLV_PRETRAINED_PATH, 
-                                               num_words=num_words,
-                                               embed_size=embed_size)
+        ftext_neo_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
+                                                                 FTEXT_PRETRAINED_NEOLOGD_PATH, 
+                                                                 num_words=num_words,
+                                                                 embed_size=embed_size)
+        ftext_wiki_wmatrix, _  = _get_weighted_matrix(tokenizer, 
+                                                      FTEXT_PRETRAINED_WIKI_PATH, 
+                                                      num_words=num_words,
+                                                      embed_size=embed_size)
     finally:
         test_df["word_list"] = test_df["comment_text"].apply(lambda text: text.split())
         # word_list中にnew_word_listの単語がどのくらい含まれているか数える
@@ -284,7 +284,7 @@ def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=128)
                                                      np.sum([word for word in word_list if word in new_word_list])
                                                      / len(word_list)).astype("float16").values
 
-        return ftext_wmatrix, glv_wmatrix, unique_rate_np
+        return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np
 
 if __name__ == '__main__':
     if '--train' in sys.argv:
