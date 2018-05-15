@@ -106,7 +106,7 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 ![モデルの構成](https://github.com/ababa893/blog-toxic-comment-classification/blob/images/model_only_ftext.png?raw=true)
 
-ポイントは、第1層と第6層です。第1層では、**"comment_text"をfastText~~・GloVeモデル~~を用いて重み付けした2種類の特徴量**を連結させています。第6層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
+ポイントは、第1層と第6層です。第1層では、**"comment_text"をfastText**~~・GloVeモデル~~**を用いて重み付けした2種類の特徴量**を連結させています。第6層では、"comment_text"の1サンプルにおいて、**学習済み分散表現モデルに登録していない新出単語が混入している比率**を計算した特徴量を連結させています。
 
 <br>
 
