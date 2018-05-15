@@ -44,7 +44,7 @@ def train(train_path):
     
     seq_maxlen = 100
     num_words = 20000
-    embed_size=128
+    embed_size = 128
     X_train_np, y_train_np, tokenizer = _get_train_feature(train_df, 
                                                            seq_maxlen=seq_maxlen, 
                                                            num_words=num_words)
@@ -108,7 +108,7 @@ def pred(test_path):
     
     seq_maxlen = 300
     num_words = 20000
-    embed_size=128
+    embed_size = 128
     X_test_np, tokenizer = _get_test_feature(test_df, seq_maxlen=seq_maxlen, num_words=num_words)
     ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np = _get_test_wvector_coeff(test_df, 
                                                                                     tokenizer, 
