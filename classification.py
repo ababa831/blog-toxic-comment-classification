@@ -2,11 +2,14 @@
 import sys
 import os
 import gc
+import re
 import logging
 import pandas as pd
 import pickle
 import h5py
-import sklearn.model_selection import train_test_split
+import time
+import numpy as np
+from sklearn.model_selection import train_test_split
 from keras.models import Model, load_model
 from keras.layers import Input, Dense, Embedding, SpatialDropout1D, concatenate
 from keras.layers import CuDNNLSTM, CuDNNGRU, Bidirectional
@@ -32,6 +35,10 @@ NEW_WORDS_LIST_PATH = './new_wordlist.pkl'
 MODEL_HISTORY_PATH = './train_hist/hist.pkl'
 PRETRAINED_MODEL_PATH = './best_model_no_cross_val.h5'
 
+# 正規表現の設定
+pattern = r'^[-]?[0-9]+(\.[0-9]+)?$'
+re_pattern = re.compile(pattern)
+
 
 def train(train_path):
     try:
@@ -42,7 +49,7 @@ def train(train_path):
     except ValueError:
         sys.exit("学習データ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"、\n 出力データのカラム名を\"is_toxic\"と指定してください。")
     
-    seq_maxlen = 100
+    seq_maxlen = 300
     num_words = 20000
     embed_size = 128
     X_train_np, y_train_np, tokenizer = _get_train_feature(train_df, 
@@ -137,16 +144,22 @@ def _get_train_feature(train_df, seq_maxlen=300, num_words=20000):
     コメント(文字列) -> トークン化された特徴, ラベル
     TODO: カレントディレクトリに学習済みtokenizerが既に存在している場合は，学習をスキップできるようにする
     """
+    print("コメントを分かち書きしています。")
     train_df["comment_text"] = train_df["comment_text"].apply(lambda text: _get_separeted(text))
     train_np = train_df["comment_text"].values
+
+    print("tokenizerモデルを学習しています。")
     tokenizer = text.Tokenizer(num_words=num_words)
     tokenizer.fit_on_texts(list(train_np))
-    # 学習済みtokenizerの保存
+
+    print("学習済みtokenizerを保存しています。")
     with open(TOKENIZER_PATH, 'wb') as handle:
         pickle.dump(tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    tokened_train_list = tokenizer.text_to_sequences(train_np)
-    X_train_np = sequence.pad_sequences(train_np, maxlen=seq_maxlen)
-    y_train_np = train_np["is_toxic"].values
+
+    print("コメントをtokenizeしています。")
+    tokened_train_list = tokenizer.texts_to_sequences(train_np)
+    X_train_np = sequence.pad_sequences(tokened_train_list, maxlen=seq_maxlen)
+    y_train_np = train_df["is_toxic"].values
         
     return X_train_np, y_train_np, tokenizer
 
@@ -173,10 +186,17 @@ def _get_train_wvector_coeff(train_df, tokenizer, num_words=20000, embed_size=12
     return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np
 
 def _get_separeted(text):
-    """Natural Language APIを用いて，文章を単語ごとに分かち書きする．"""
+    """
+    Natural Language APIを用いて，文章を単語ごとに分かち書きする．
+    
+    注：100 秒あたりのリクエスト数はデフォルトで1000が上限。制限に引っかからないようにすること.
+    上限数を上げたい場合は https://console.cloud.google.com/project/_/quotas?_ga=2.241281344.-390384268.1526126587
+    の IAMと管理 > 割り当て > Cloud Natural Language API Requests / 分 の割り当て制限量の増加をリクエストする．
+    """
     document = types.Document(content=text, type=enums.Document.Type.PLAIN_TEXT)
     syntax_response = client.analyze_syntax(document=document)
     separeted_text = " ".join([s.text.content for s in syntax_response.tokens])
+    time.sleep(0.1)
     
     return separeted_text
 
@@ -197,13 +217,16 @@ def _get_weighted_matrix(tokenizer, pretrained_path, num_words=20000, embed_size
 
     return embed_matrix, new_words_list
 
-def _get_coefs(word, *arr): return word, np.asarray(arr, dtype='float32')
+#TODO:　arrに　/^[-]?[0-9]+(\.[0-9]+)?$/　以外を消す処理　if arr[i]の正規表現範囲外 -> del arr[i]
+def _get_coefs(word, *arr): 
+    arr_fixed = [arr_val for arr_val in arr if re_pattern.match(arr_val)]
+    return word, np.asarray(arr_fixed, dtype='float32')
 
 def _get_input_dict(input_np, seq_maxlen=300):
     """2種類のモデル（fastText, GloVe）で重み付けできるようにdictを作成"""
     input_dict = {
                   'ftext': input_np[:, :seq_maxlen, :],
-                  'glv': input_np[:, :seq_maxlen, :]
+                  'glv': input_np[:, :seq_maxlen, :],
                   'uniq_rate': input_np[:, seq_maxlen, :]
                  }
 
@@ -254,7 +277,7 @@ def _get_test_feature(test_df, seq_maxlen=300, num_words=20000):
     except:
         sys.exit("tokenizerがロードできません。")
     
-    tokened_test_list = tokenizer.text_to_sequences(test_np)
+    tokened_test_list = tokenizer.texts_to_sequences(test_np)
     X_test_np = sequence.pad_sequences(test_np, maxlen=seq_maxlen)
         
     return X_test_np, tokenizer
