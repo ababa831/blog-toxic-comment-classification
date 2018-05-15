@@ -93,7 +93,8 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 
 ### コーパス
 
-まとめブログを中心に、PV数の多いブログのコメントを収集してコーパスを用意し、分散表現モデルを学習しました。本リポジトリでは、約~MBのコーパスを学習させています。
+~~まとめブログを中心に、PV数の多いブログのコメントを収集してコーパスを用意し、分散表現モデルを学習しました。本リポジトリでは、約~MBのコーパスを学習させています。~~
+学習済みの日本語版[fastText](https://qiita.com/Hironsan/items/8f7d35f0a36e0f99752c#fasttext)，[GloVe](https://github.com/Kyubyong/wordvectors#pre-trained-models)を利用します．
 
 <br>
 

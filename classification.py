@@ -23,8 +23,8 @@ import roc_auc_callback as auc
 
 client = language.LanguageServiceClient()
 
-FTEXT_PRETRAINED_PATH = './fast_blog.txt'
-GLV_PRETRAINED_PATH = './glv_blog.txt'
+FTEXT_PRETRAINED_PATH = './fast_neologd.vec'
+GLV_PRETRAINED_PATH = './glv_neologd.vec'
 TOKENIZER_PATH = './tokenizer.pkl'
 FTEXT_WEIGHTED_MATRIX_PATH ='./fast_wmatrix.pkl' 
 GLV_WEIGHTED_MATRIX_PATH ='./glv_wmatrix.pkl' 
@@ -106,7 +106,7 @@ def pred(test_path):
     except ValueError:
         sys.exit("テストファイルデータ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"と指定してください。")
     
-    seq_maxlen = 100
+    seq_maxlen = 300
     num_words = 20000
     embed_size=128
     X_test_np, tokenizer = _get_test_feature(test_df, seq_maxlen=seq_maxlen, num_words=num_words)
@@ -132,7 +132,7 @@ def pred_text(input_text):
     # TODO:書く
     pass
 
-def _get_train_feature(train_df, seq_maxlen=100, num_words=20000):
+def _get_train_feature(train_df, seq_maxlen=300, num_words=20000):
     """
     コメント(文字列) -> トークン化された特徴, ラベル
     TODO: カレントディレクトリに学習済みtokenizerが既に存在している場合は，学習をスキップできるようにする
@@ -199,7 +199,7 @@ def _get_weighted_matrix(tokenizer, pretrained_path, num_words=20000, embed_size
 
 def _get_coefs(word, *arr): return word, np.asarray(arr, dtype='float32')
 
-def _get_input_dict(input_np, seq_maxlen=100):
+def _get_input_dict(input_np, seq_maxlen=300):
     """2種類のモデル（fastText, GloVe）で重み付けできるようにdictを作成"""
     input_dict = {
                   'ftext': input_np[:, :seq_maxlen, :],
@@ -209,7 +209,7 @@ def _get_input_dict(input_np, seq_maxlen=100):
 
     return input_dict
 
-def _get_model(len_train, fasttext_weight, glove_weight, seq_maxlen=100, num_words=20000, 
+def _get_model(len_train, fasttext_weight, glove_weight, seq_maxlen=300, num_words=20000, 
                embed_size=128, batch_size=5000, epochs=2):
     inp_ftext = Input(shape=(seq_maxlen, ), name='ftext')
     inp_glv = Input(shape=(seq_maxlen, ), name='glv')
@@ -242,7 +242,7 @@ def _get_model(len_train, fasttext_weight, glove_weight, seq_maxlen=100, num_wor
 
     return model
 
-def _get_test_feature(test_df, seq_maxlen=100, num_words=20000):
+def _get_test_feature(test_df, seq_maxlen=300, num_words=20000):
     test_df["comment_text"] = test_df["comment_text"].apply(lambda text: _get_separeted(text))
     test_np = test_df["comment_text"].values
     try:
