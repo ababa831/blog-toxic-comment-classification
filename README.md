@@ -4,13 +4,11 @@
 
 ## はじめに
 
-一部のブログには、コメント欄に有害なコメントを多数投下してコミュニティを踏み荒すユーザ（ひょっとしたら業者さん？）が存在します。
-対抗策として、NGワードを設定したり、特定ipのコメントを制限したり、Good/Badの投票機能を用意したりする方法がありますが、この手のユーザは巧みにその規制を掻い潜ります。
-また、一時的に管理者のみがコメントを閲覧できるようにして、コメントを公開するか否かを決める方法がありますが、管理に多大な負担を強います。
+一部のブログには、コメント欄に有害なコメントを多数投下してコミュニティを踏み荒す悪質なユーザ（ひょっとしたら業者さん？）が存在します。
+対抗策として、NGワードを設定したり、特定ipのコメントを制限したり、Good/Badの投票機能を用意してフィルタリングしたりする方法がありますが、この手のユーザは巧みにその規制を掻い潜ります。
+また、一時的に管理者のみがコメントを閲覧できるようにして、コメントを公開するか否かを決める方法がありますが、その管理には多大な負担がかかります。
 
-執筆者は、Kaggleの[Toxic Comment Classification Challenge](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge)で議論されていた手法を適用することで、この問題を解決できるではないかと考えました。
-
-本リポジトリでは、収集したblogコメントのデータから、有害/無害なコメントを分類するコードを公開します。
+執筆者は、Kaggleの[Toxic Comment Classification Challenge](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge)で議論されていた手法を参考に，上記の問題の解決に役立つツールを開発しています．本リポジトリでは，収集したblogコメントのデータから、有害/無害なコメントを分類するコードを公開します。
 
 （注：収集したコメントデータは公開致しませんので、各自ご用意ください）
 
@@ -19,7 +17,7 @@
 ## 使い方
 ### Requirements
 
-- NVIDIA製GPUを搭載したPC (cuDNN LSTM, GRUを用いた分類器を使うため)
+- NVIDIAのGPUを搭載したPC (cuDNN LSTM, GRUを用いた分類器を使うため)
 - GPU版TensorFlowが動作する環境 
 - [Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)
 
