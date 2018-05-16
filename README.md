@@ -10,7 +10,7 @@
 
 執筆者は、Kaggleの[Toxic Comment Classification Challenge](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge)で議論されていた手法を参考に，上記の問題の解決に役立つツールを開発しています．本リポジトリでは，収集したblogコメントのデータから、有害/無害なコメントを分類するコードを公開します。
 
-（注：収集したコメントデータは公開致しませんので、各自ご用意ください）
+（注：収集したコメントデータ(学習，テスト用)は公開致しませんので、各自ご用意ください）
 
 <br>
 
