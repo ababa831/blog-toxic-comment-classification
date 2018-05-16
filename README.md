@@ -112,8 +112,9 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 ## 結果
 
 ## TODO
-他の分散表現モデルも試す。
-時間がないので取り敢えずはfasttext gloveの辞書を使わないかも？
+
+- 有害コメント分類器の学習済みモデルをつくる 
+- GloVeの学習済み分散表現モデルをつくる
 
 
 
