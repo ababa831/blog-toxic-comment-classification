@@ -125,6 +125,7 @@ def pred(test_path):
         model = load_model(PRETRAINED_MODEL_PATH)
     except:
         sys.exit("学習済みモデルが読み込めません")
+    batch_size=5000
     outputs = model.predict(X_test_dict, batch_size=batch_size, verbose=1)
     
     print("テストデータの推論が終了しました。結果を保存しています。")
@@ -290,7 +291,7 @@ def _get_test_feature(test_df, seq_maxlen=300, num_words=20000):
         
     return X_test_np, tokenizer
 
-def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=300, seq_maxlen=seq_maxlen):
+def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=300, seq_maxlen=300):
     try:
         with open(FTEXT_NEO_WEIGHTED_MATRIX_PATH, 'rb') as handle:
             ftext_neo_wmatrix = pickle.load(handle)
