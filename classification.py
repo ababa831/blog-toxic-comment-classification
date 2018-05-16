@@ -2,7 +2,6 @@
 import sys
 import os
 import gc
-import re
 import logging
 import pandas as pd
 import pickle
@@ -34,10 +33,6 @@ FTEXT_WIKI_WEIGHTED_MATRIX_PATH ='./fast_wiki_wmatrix.pkl'
 NEW_WORDS_LIST_PATH = './new_wordlist.pkl'
 MODEL_HISTORY_PATH = './hist.pkl'
 PRETRAINED_MODEL_PATH = './best_model_no_cross_val.h5'
-
-# 正規表現の設定
-pattern = r'(?!^[-]?[0-9]+(\.[0-9]+)?$)' # 先頭：?!　つけてみる
-re_pattern = re.compile(pattern)
 
 
 def train(train_path):
