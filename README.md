@@ -36,10 +36,10 @@
 
 ```
 $ python classification.py --pred-text "キモいブスばっか全員消えろ"
-Toxicity of "キモいブスばっか全員消えろ" is 0.93445
+Toxicity of キモいブスばっか全員消えろ is 0.93445
 
 $ python classification.py --pred-text "バカハゲ間抜けカス"
-Toxicity of "バカハゲ間抜けカス" is 0.97665
+Toxicity of バカハゲ間抜けカス is 0.97665
 ```
 
 学習を行いたい場合は、以下を実行します。
