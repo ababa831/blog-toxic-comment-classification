@@ -237,7 +237,7 @@ def _get_coefs(word, *arr):
     return word, np.asarray(arr_fixed, dtype='float32')
 
 def _get_input_dict(input_np, seq_maxlen=300):
-    """2種類のモデル（fastText, GloVe）で重み付けできるようにdictを作成"""
+    """2種類の学習済みモデル（fastText_NEologd, fastText_Wikipedia）で重み付けできるようにdictを作成"""
     input_dict = {
                   'ftext_neo': input_np[:, :seq_maxlen],
                   'ftext_wiki': input_np[:, :seq_maxlen],
