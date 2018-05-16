@@ -18,7 +18,7 @@
 ### Requirements
 
 - NVIDIAのGPUを搭載したPC (cuDNN LSTM, GRUを用いた分類器を使うため)
-- GPU版TensorFlowが動作する環境 
+- GPU版TensorFlow
 - [Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)
 
 ### 使用手順
@@ -72,7 +72,7 @@ Toxicity of "バカハゲ間抜けカス" is 0.97665
 
 ### テキストのベクトル化
 
-Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用いて、単語を数値ラベルに変換して文字列をベクトルとして扱います。
+Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用いて、単語を数値に変換して文字列をベクトルとして扱います。
 
 日本語の文章は、単語の間にスペースが入っていないので、文字列をベクトルとして扱うには、予め単語同士を分かち書きする必要があります。分かち書きには、[Google Cloud Natural Language API](https://cloud.google.com/natural-language/docs/?hl=ja)を用います。
 
