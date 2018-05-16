@@ -32,11 +32,11 @@ TOKENIZER_PATH = './tokenizer.pkl'
 FTEXT_NEO_WEIGHTED_MATRIX_PATH ='./fast_neo_wmatrix.pkl' 
 FTEXT_WIKI_WEIGHTED_MATRIX_PATH ='./fast_wiki_wmatrix.pkl' 
 NEW_WORDS_LIST_PATH = './new_wordlist.pkl'
-MODEL_HISTORY_PATH = './train_hist/hist.pkl'
+MODEL_HISTORY_PATH = './hist.pkl'
 PRETRAINED_MODEL_PATH = './best_model_no_cross_val.h5'
 
 # 正規表現の設定
-pattern = r'^[-]?[0-9]+(\.[0-9]+)?$'
+pattern = r'(?!^[-]?[0-9]+(\.[0-9]+)?$)' # 先頭：?!　つけてみる
 re_pattern = re.compile(pattern)
 
 
@@ -50,16 +50,17 @@ def train(train_path):
         sys.exit("学習データ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"、\n 出力データのカラム名を\"is_toxic\"と指定してください。")
     
     seq_maxlen = 300
-    num_words = 20000
-    embed_size = 128
+    num_words = 20000 # TODO: 出現語彙数をカウントするものを作成
+    embed_size = 300
     X_train_np, y_train_np, tokenizer = _get_train_feature(train_df, 
                                                            seq_maxlen=seq_maxlen, 
                                                            num_words=num_words)
     ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np = _get_train_wvector_coeff(train_df, 
                                                                                      tokenizer, 
                                                                                      num_words=num_words,
-                                                                                     embed_size=embed_size)
-    X_train_np = np.concatenate([X_train_np, unique_rate], axis=1)
+                                                                                     embed_size=embed_size,
+                                                                                     seq_maxlen=seq_maxlen)
+    X_train_np = np.concatenate([X_train_np, unique_rate_np], axis=1)
     del train_df
     gc.collect()
 
@@ -87,7 +88,7 @@ def train(train_path):
                        batch_size=batch_size,
                        epochs=epochs)
     false_cross_validation = 0
-    auc_callback = auc.RocAucEvaluation(validation_data=(X_val_np, y_val_np),
+    auc_callback = auc.RocAucEvaluation(validation_data=(X_val_dict, y_val_np),
                                         fold_idx=false_cross_validation)
     history = model.fit(X_train_dict, 
                         y_train_np, 
@@ -115,13 +116,14 @@ def pred(test_path):
     
     seq_maxlen = 300
     num_words = 20000
-    embed_size = 128
+    embed_size = 300
     X_test_np, tokenizer = _get_test_feature(test_df, seq_maxlen=seq_maxlen, num_words=num_words)
     ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np = _get_test_wvector_coeff(test_df, 
                                                                                     tokenizer, 
                                                                                     num_words=num_words,
-                                                                                    embed_size=embed_size)
-    X_test_np = np.concatenate([X_test_np, unique_rate], axis=1)
+                                                                                    embed_size=embed_size,
+                                                                                    seq_maxlen=seq_maxlen)
+    X_test_np = np.concatenate([X_test_np, unique_rate_np], axis=1)
     X_test_dict = _get_input_dict(X_test_np, seq_maxlen)
 
     try:
@@ -129,7 +131,7 @@ def pred(test_path):
         model = load_model(PRETRAINED_MODEL_PATH)
     except:
         sys.exit("学習済みモデルが読み込めません")
-    outputs = model.fit(X_test_dict, batch_size=batch_size, verbose=1)
+    outputs = model.predict(X_test_dict, batch_size=batch_size, verbose=1)
     
     print("テストデータの推論が終了しました。結果を保存しています。")
     test_df["is_toxic"] = outputs
@@ -148,6 +150,8 @@ def _get_train_feature(train_df, seq_maxlen=300, num_words=20000):
     train_df["comment_text"] = train_df["comment_text"].apply(lambda text: _get_separeted(text))
     train_np = train_df["comment_text"].values
 
+    # TODO: ここで語彙数を計算するメソッドを書く
+
     print("tokenizerモデルを学習しています。")
     tokenizer = text.Tokenizer(num_words=num_words)
     tokenizer.fit_on_texts(list(train_np))
@@ -163,7 +167,7 @@ def _get_train_feature(train_df, seq_maxlen=300, num_words=20000):
         
     return X_train_np, y_train_np, tokenizer
 
-def _get_train_wvector_coeff(train_df, tokenizer, num_words=20000, embed_size=128):
+def _get_train_wvector_coeff(train_df, tokenizer, num_words=20000, embed_size=300, seq_maxlen=300):
     """
     トークン化した各単語に対応する学習済みfastText, GloVeの重みを抽出。 
     また、学習済みfastText, GloVeに存在しない単語をnew_words_listとして抽出し、
@@ -172,18 +176,20 @@ def _get_train_wvector_coeff(train_df, tokenizer, num_words=20000, embed_size=12
     ftext_neo_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
                                                              FTEXT_PRETRAINED_NEOLOGD_PATH, 
                                                              num_words=num_words,
-                                                             embed_size=embed_size)
+                                                             embed_size=embed_size,
+                                                             seq_maxlen=seq_maxlen)
     ftext_wiki_wmatrix, _  = _get_weighted_matrix(tokenizer, 
                                                   FTEXT_PRETRAINED_WIKI_PATH, 
                                                   num_words=num_words,
-                                                  embed_size=embed_size)
+                                                  embed_size=embed_size,
+                                                  seq_maxlen=seq_maxlen)
     train_df["word_list"] = train_df["comment_text"].apply(lambda text: text.split())
     # word_list中にnew_word_listの単語がどのくらい含まれているか数える
-    unique_rate_np = train_df["word_lists"].apply(lambda word_list: 
-                                                  np.sum([word for word in word_list if word in new_word_list])
-                                                  / len(word_list)).astype("float16").values
+    unique_rate_np = train_df["word_list"].apply(lambda word_list: 
+                                                 len([word for word in word_list if word in new_words_list])
+                                                 / len(word_list)).astype("float16").values
 
-    return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np
+    return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np.reshape(-1, 1)
 
 def _get_separeted(text):
     """
@@ -200,61 +206,69 @@ def _get_separeted(text):
     
     return separeted_text
 
-def _get_weighted_matrix(tokenizer, pretrained_path, num_words=20000, embed_size=128):
+def _get_weighted_matrix(tokenizer, pretrained_path, num_words=20000, embed_size=300, seq_maxlen=300):
     """学習済み単語ベクトルを読み込んで、特徴の重みを計算"""
     embed_idx = dict(_get_coefs(*word_and_vector.strip().split()) for word_and_vector in open(pretrained_path))
-    all_embs = np.stack(embed_idx.values())
+    # 次元の不揃いなベクトルをseq_maxlenにpaddingする
+    embed_idx_val = sequence.pad_sequences(embed_idx.values(), maxlen=seq_maxlen)
+    all_embs = np.stack(embed_idx_val)
     embed_mean, embed_std =  all_embs.mean(), all_embs.std()
-    word_idx = tokenizer.word_idx
+    word_idx = tokenizer.word_index
     nb_words = min(num_words, len(word_idx))
     embed_matrix = np.random.normal(embed_mean, embed_std, (nb_words, embed_size))
     new_words_list = []
     for word, idx in word_idx.items():
-        if idx >= max_features: continue
+        if idx >= num_words: continue
         embed_vector = embed_idx.get(word)
-        if embed_vector is not None: embed_matrix[i] = embed_vector
+        if embed_vector is not None: embed_matrix[idx] = embed_vector
         else: new_words_list.append(word)
 
     return embed_matrix, new_words_list
 
-#TODO:　arrに　/^[-]?[0-9]+(\.[0-9]+)?$/　以外を消す処理　if arr[i]の正規表現範囲外 -> del arr[i]
-def _get_coefs(word, *arr): 
-    arr_fixed = [arr_val for arr_val in arr if re_pattern.match(arr_val)]
+def _get_coefs(word, *arr):
+    #TODO: 遅いので改善
+    arr_fixed = []
+    for arr_val in arr:
+        try:
+            arr_fixed.append(float(arr_val))
+        except ValueError:
+            pass
+
     return word, np.asarray(arr_fixed, dtype='float32')
 
 def _get_input_dict(input_np, seq_maxlen=300):
     """2種類のモデル（fastText, GloVe）で重み付けできるようにdictを作成"""
     input_dict = {
-                  'ftext': input_np[:, :seq_maxlen, :],
-                  'glv': input_np[:, :seq_maxlen, :],
-                  'uniq_rate': input_np[:, seq_maxlen, :]
+                  'ftext_neo': input_np[:, :seq_maxlen],
+                  'ftext_wiki': input_np[:, :seq_maxlen],
+                  'uniq_rate': input_np[:, seq_maxlen]
                  }
 
     return input_dict
 
 def _get_model(len_train, fasttext_weight, glove_weight, seq_maxlen=300, num_words=20000, 
-               embed_size=128, batch_size=5000, epochs=2):
-    inp_ftext = Input(shape=(seq_maxlen, ), name='ftext')
-    inp_glv = Input(shape=(seq_maxlen, ), name='glv')
-    inp_urate = Input(shape=(1), name='uniq_rate')
-    embed_ftext = Embedding(num_words, embed_size, weights=[fasttext_weight])(inp_ftext)
-    embed_glv = Embedding(num_words, embed_size, weights=[glove_weight])(inp_glv)
-    conc_embed = concatenate()([embed_ftext, embed_glv])
+               embed_size=300, batch_size=5000, epochs=2):
+    inp_ftext_neo = Input(shape=(seq_maxlen, ), name='ftext_neo')
+    inp_ftext_wiki = Input(shape=(seq_maxlen, ), name='ftext_wiki')
+    inp_urate = Input(shape=[1], name='uniq_rate')
+    embed_ftext_neo = Embedding(num_words, embed_size, weights=[fasttext_weight])(inp_ftext_neo)
+    embed_ftext_wiki = Embedding(num_words, embed_size, weights=[glove_weight])(inp_ftext_wiki)
+    conc_embed = concatenate([embed_ftext_neo, embed_ftext_wiki])
     dout = SpatialDropout1D(0.5)(conc_embed)
 
     lstmed = Bidirectional(CuDNNLSTM(40, return_sequences=True, go_backwards=True))(dout)
     grued = Bidirectional(CuDNNGRU(40, return_sequences=True, go_backwards=True))(lstmed)
     avg_pooled = GlobalAveragePooling1D()(grued)
     max_pooled = GlobalMaxPooling1D()(grued)
-    conc_pool_urate = concatenate()([avg_pooled, max_pooled, inp_urate])
+    conc_pool_urate = concatenate([avg_pooled, max_pooled, inp_urate])
     outs = Dense(1, activation="sigmoid")(conc_pool_urate)
 
-    inputs = [inp_ftext, inp_glv]
-    model = Model(inputs=inputs, outputs=x)
+    inputs = [inp_ftext_neo, inp_ftext_wiki, inp_urate]
+    model = Model(inputs=inputs, outputs=outs)
 
     # 重み減数の設定
     exp_decay = lambda init, fin, steps: (init / fin) ** (1 / (steps - 1)) - 1
-    steps = init(len_train / batch_size) * epochs
+    steps = int(len_train / batch_size) * epochs
     lr_init, lr_fin = 0.002, 0.0002
     lr_decay = exp_decay(lr_init, lr_fin, steps)
     optimizer_adam = Adam(lr=0.002, decay=lr_decay)
@@ -278,11 +292,11 @@ def _get_test_feature(test_df, seq_maxlen=300, num_words=20000):
         sys.exit("tokenizerがロードできません。")
     
     tokened_test_list = tokenizer.texts_to_sequences(test_np)
-    X_test_np = sequence.pad_sequences(test_np, maxlen=seq_maxlen)
+    X_test_np = sequence.pad_sequences(tokened_test_list, maxlen=seq_maxlen)
         
     return X_test_np, tokenizer
 
-def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=128):
+def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=300, seq_maxlen=seq_maxlen):
     try:
         with open(FTEXT_NEO_WEIGHTED_MATRIX_PATH, 'rb') as handle:
             ftext_neo_wmatrix = pickle.load(handle)
@@ -295,19 +309,21 @@ def _get_test_wvector_coeff(test_df, tokenizer, num_words=20000, embed_size=128)
         ftext_neo_wmatrix, new_words_list = _get_weighted_matrix(tokenizer, 
                                                                  FTEXT_PRETRAINED_NEOLOGD_PATH, 
                                                                  num_words=num_words,
-                                                                 embed_size=embed_size)
+                                                                 embed_size=embed_size,
+                                                                 seq_maxlen=seq_maxlen)
         ftext_wiki_wmatrix, _  = _get_weighted_matrix(tokenizer, 
                                                       FTEXT_PRETRAINED_WIKI_PATH, 
                                                       num_words=num_words,
-                                                      embed_size=embed_size)
+                                                      embed_size=embed_size,
+                                                      seq_maxlen=seq_maxlen)
     finally:
         test_df["word_list"] = test_df["comment_text"].apply(lambda text: text.split())
         # word_list中にnew_word_listの単語がどのくらい含まれているか数える
-        unique_rate_np = test_df["word_lists"].apply(lambda word_list: 
-                                                     np.sum([word for word in word_list if word in new_word_list])
-                                                     / len(word_list)).astype("float16").values
+        unique_rate_np = test_df["word_list"].apply(lambda word_list: 
+                                                    len([word for word in word_list if word in new_words_list])
+                                                    / len(word_list)).astype("float16").values
 
-        return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np
+        return ftext_neo_wmatrix, ftext_wiki_wmatrix, unique_rate_np.reshape(-1, 1)
 
 if __name__ == '__main__':
     if '--train' in sys.argv:
