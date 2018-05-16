@@ -104,7 +104,6 @@ def train(train_path):
     with open(MODEL_HISTORY_PATH, 'wb') as handle:
         pickle.dump(history.history, handle)
 
-
 def pred(test_path):
     try:
         print("テストファイルを読み込んでいます")
