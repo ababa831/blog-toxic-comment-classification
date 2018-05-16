@@ -28,7 +28,7 @@
 1. 本リポジトリをgit cloneします。
 2. [ここ](https://drive.google.com/open?id=0ByFQ96A4DgSPUm9wVWRLdm5qbmc)と[ここ](https://www.dropbox.com/s/7digqy9ag3b9xeu/ja.tar.gz?dl=0)から、学習済みの日本語版分散表現モデルをDLして、カレントディレクトリに置き、2種類のvecファイル名を`fast_neo.vec`, `fast_wiki.vec`に変更します。
 3. blog-toxic-comment-classificationディレクトリに移動して、`$ pip install -r requirements.txt`を実行し、必要なライブラリをインストールします。
-4. **問題設定**（次項）を参考に、テストデータを用意します。
+4. [問題設定](https://github.com/ababa893/blog-toxic-comment-classification#%E5%95%8F%E9%A1%8C%E8%A8%AD%E5%AE%9A)（次項）を参考に、テストデータを用意します。
 5. `$ python classification.py --pred <テストデータのパス>`を実行します。
 6. 結果がcsvファイルとして、同ディレクトリ内に出力されます。
 
