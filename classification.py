@@ -2,6 +2,7 @@
 import sys
 import os
 import gc
+from argparse import ArgumentParser
 from collections import Counter
 import logging
 import pandas as pd
@@ -120,10 +121,10 @@ def pred(test_path):
     X_test_np = np.concatenate([X_test_np, unique_rate_np], axis=1)
     X_test_dict = _get_input_dict(X_test_np, seq_maxlen)
 
-    try:
+    if os.path.exists(PRETRAINED_MODEL_PATH):
         print("学習済みモデルを読み込んでいます")
         model = load_model(PRETRAINED_MODEL_PATH)
-    except:
+    else:
         sys.exit("学習済みモデルが読み込めません")
     batch_size=5000
     outputs = model.predict(X_test_dict, batch_size=batch_size, verbose=1)
@@ -143,10 +144,10 @@ def pred_text(input_text):
     X_test_np = np.concatenate([X_test_np, unique_rate_np], axis=1)
     X_test_dict = _get_input_dict(X_test_np, seq_maxlen)
 
-    try:
+    if os.path.exists(PRETRAINED_MODEL_PATH):
         print("学習済みモデルを読み込んでいます")
         model = load_model(PRETRAINED_MODEL_PATH)
-    except:
+    else:
         sys.exit("学習済みモデルが読み込めません")
     outputs = model.predict(X_test_dict, verbose=1)
     print("Toxicity of " + input_text + " is ", outputs[0, 0])
@@ -300,21 +301,19 @@ def _get_exp_decay(init, fin, steps): return (init / fin) ** (1 / (steps - 1)) -
 def _get_test_feature(test_data, seq_maxlen=300):
     print("コメントを分かち書きしています")
     if type(test_data) is not str:
-        # DataFrame
+        # DataFrame -> numpy.array
         test_data["comment_text"] = test_data["comment_text"].apply(lambda text: _get_separeted(text))
         test_np = test_data["comment_text"].values
     else:
-        # string
+        # string -> numpy.array
         separeted_text = _get_separeted(test_data)
         test_np = np.array([separeted_text])
-    try:
+    if os.path.exists(TOKENIZER_PATH):
         print("学習済みtokenizerをロードしています")
-        with open('tokenizer.pkl', 'rb') as handle:
+        with open(TOKENIZER_PATH, 'rb') as handle:
             tokenizer = pickle.load(handle)
-    except FileNotFoundError:
+    else:
         sys.exit("学習済みtokenizerが見つかりません")
-    except:
-        sys.exit("tokenizerがロードできません")
     
     tokened_test_list = tokenizer.texts_to_sequences(test_np)
     X_test_np = sequence.pad_sequences(tokened_test_list, maxlen=seq_maxlen)
@@ -322,22 +321,21 @@ def _get_test_feature(test_data, seq_maxlen=300):
     return X_test_np, tokenizer
 
 def _get_test_wvector_coeff(test_data, tokenizer, embed_size=300, seq_maxlen=300):
-    try:
+    if os.path.exists(NEW_WORDS_LIST_PATH):
         with open(NEW_WORDS_LIST_PATH, 'rb') as handle:
             new_words_list = pickle.load(handle)
-    except:
+    else:
         print("new words listが存在しないので、作成します")
         _, new_words_list = _get_weighted_matrix(tokenizer, 
                                                  FTEXT_PRETRAINED_NEOLOGD_PATH, 
                                                  embed_size=embed_size,
                                                  seq_maxlen=seq_maxlen)
-    finally:
-        if type(test_data) is not str:
-            unique_rate_np = _get_urate_from_df(test_data, new_words_list)
-        else:
-            unique_rate_np = _get_urate_from_text(test_data, new_words_list)
+    if type(test_data) is not str:
+        unique_rate_np = _get_urate_from_df(test_data, new_words_list)
+    else:
+        unique_rate_np = _get_urate_from_text(test_data, new_words_list)
 
-        return unique_rate_np.reshape(-1, 1)
+    return unique_rate_np.reshape(-1, 1)
 
 def _get_urate_from_df(test_data, new_words_list):
     """DataFrame形式のテストデータ -> word_list中にnew_word_listの単語が含まれている比率"""
@@ -353,27 +351,20 @@ def _get_urate_from_text(test_data, new_words_list):
     word_list = test_data.split()
     unique_rate = len([word for word in word_list if word in new_words_list]) / len(word_list)
 
-    return np.array([unique_rate])    
+    return np.array([unique_rate])
+
+def parser():
+    argparser = ArgumentParser()
+    argparser.add_argument('--train', type=str, nargs=1)
+    argparser.add_argument('--pred', type=str, nargs=1)
+    argparser.add_argument('--pred-text', type=str, nargs=1, dest='pred_text')
+    args = argparser.parse_args()
+    if args.train:
+        return train(args.train[0])
+    if args.pred:
+        return pred(args.pred[0])
+    if args.pred_text:
+        return pred_text(args.pred_text[0])
 
 if __name__ == '__main__':
-    if '--train' in sys.argv:
-        try:
-            train_path = sys.argv[2]
-        except IndexError:
-            sys.exit("学習データのパスが指定されていません。")
-        else:
-            train(train_path)
-    if '--pred' in sys.argv:
-        try:
-            test_path = sys.argv[2]
-        except IndexError:
-            sys.exit("テストデータのパスが指定されていません。")
-        else:
-            pred(test_path)
-    if '--pred-text' in sys.argv:
-        try:
-            input_text = sys.argv[2]
-        except IndexError:
-            sys.exit("推論対象の文字列が指定されていません。")
-        else:
-            pred_text(input_text)       
+    parser()
