@@ -18,6 +18,7 @@ from keras.layers import GlobalAveragePooling1D, GlobalMaxPooling1D
 from keras.preprocessing import text, sequence
 from keras.optimizers import Adam
 # Google Client Libraries
+import google
 from google.cloud import language
 from google.cloud.language import enums
 from google.cloud.language import types
