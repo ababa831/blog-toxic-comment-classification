@@ -69,10 +69,11 @@ def train(train_path):
 
     batch_size = 5000
     epochs = 2
+    num_words = min(tokenizer.num_words, len(tokenizer.word_index))
     model = _get_model(len_train, 
                        ftext_neo_wmatrix, 
                        ftext_wiki_wmatrix,
-                       num_words=len(tokenizer.word_index), 
+                       num_words=num_words,  
                        seq_maxlen=seq_maxlen,
                        embed_size=embed_size,
                        batch_size=batch_size,
@@ -90,7 +91,7 @@ def train(train_path):
                         shuffle=True, 
                         verbose=1)
 
-    print("学習が完了しました。履歴を保存しています。")
+    print("学習が完了しました。ファイル名：{:s}として履歴を保存しています。".format(MODEL_HISTORY_PATH))
     with open(MODEL_HISTORY_PATH, 'wb') as handle:
         pickle.dump(history.history, handle)
 
@@ -147,7 +148,6 @@ def pred_text(input_text):
 def _get_train_feature(train_df, seq_maxlen=300):
     """
     コメント(文字列) -> トークン化された特徴, ラベル
-    TODO: カレントディレクトリに学習済みtokenizerが既に存在している場合は，学習をスキップできるようにする
     """
     print("コメントを分かち書きしています")
     train_df["comment_text"] = train_df["comment_text"].apply(lambda text: _get_separeted(text))
@@ -233,7 +233,11 @@ def _get_weighted_matrix(tokenizer, pretrained_path, embed_size=300, seq_maxlen=
     return embed_matrix, new_words_list
 
 def _get_coefs(word, *arr):
-    #TODO: 遅いので改善
+    """
+    入力された*arr(str)にワードベクトルの数値以外の不純物が含まれていることがあるので，
+    try: 数値データであればarr_fixedにappendする
+    except: 数値以外の不純物が混じっている場合は含めない
+    """
     arr_fixed = []
     for arr_val in arr:
         try:
@@ -274,10 +278,9 @@ def _get_model(len_train, ftext_neo_weight, ftext_wiki_weight, num_words, seq_ma
     model = Model(inputs=inputs, outputs=outs)
 
     # 重み減数の設定
-    exp_decay = lambda init, fin, steps: (init / fin) ** (1 / (steps - 1)) - 1
     steps = int(len_train / batch_size) * epochs
     lr_init, lr_fin = 0.002, 0.0002
-    lr_decay = exp_decay(lr_init, lr_fin, steps)
+    lr_decay = _get_exp_decay(lr_init, lr_fin, steps)
     optimizer_adam = Adam(lr=0.002, decay=lr_decay)
 
     model.compile(loss='binary_crossentropy',
@@ -285,6 +288,8 @@ def _get_model(len_train, ftext_neo_weight, ftext_wiki_weight, num_words, seq_ma
                   metrics=['accuracy'])
 
     return model
+
+def _get_exp_decay(init, fin, steps): return (init / fin) ** (1 / (steps - 1)) - 1 
 
 def _get_test_feature(test_data, seq_maxlen=300):
     if type(test_data) is not str:
@@ -321,19 +326,27 @@ def _get_test_wvector_coeff(test_data, tokenizer, embed_size=300, seq_maxlen=300
                                                  seq_maxlen=seq_maxlen)
     finally:
         if type(test_data) is not str:
-            # DataFrame
-            test_data["word_list"] = test_data["comment_text"].apply(lambda comment: comment.split())
-            # word_list中にnew_word_listの単語がどのくらい含まれているか数える
-            unique_rate_np = test_data["word_list"].apply(lambda word_list: 
-                                                          len([word for word in word_list if word in new_words_list])
-                                                          / len(word_list)).astype("float16").values
+            unique_rate_np = _get_urate_from_df(test_data, new_words_list)
         else:
-            # String
-            word_list = test_data.split()
-            unique_rate = len([word for word in word_list if word in new_words_list]) / len(word_list)
-            unique_rate_np = np.array([unique_rate])
+            unique_rate_np = _get_urate_from_text(test_data, new_words_list)
 
         return unique_rate_np.reshape(-1, 1)
+
+def _get_urate_from_df(test_data, new_words_list):
+    """DataFrame形式のテストデータ -> word_list中にnew_word_listの単語が含まれている比率"""
+    test_data["word_list"] = test_data["comment_text"].apply(lambda comment: comment.split())
+    unique_rate_np = test_data["word_list"].apply(lambda word_list: 
+                                                  len([word for word in word_list if word in new_words_list])
+                                                  / len(word_list)).astype("float16").values
+
+    return unique_rate_np
+
+def _get_urate_from_text(test_data, new_words_list):
+    """文字列(str)のテストデータ -> word_list中にnew_word_listの単語が含まれている比率"""
+    word_list = test_data.split()
+    unique_rate = len([word for word in word_list if word in new_words_list]) / len(word_list)
+
+    return np.array([unique_rate])    
 
 if __name__ == '__main__':
     if '--train' in sys.argv:
