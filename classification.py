@@ -35,13 +35,16 @@ PRETRAINED_MODEL_PATH = './best_model_no_cross_val.h5'
 
 
 def train(train_path):
-    try:
+    if os.path.exists(train_path):
         print("学習ファイルを読み込んでいます")
-        train_df = pd.read_csv(train_path, usecols=["comment_text", "is_toxic"])
-    except FileNotFoundError:
+        train_df = pd.read_csv(train_path)
+    else:
         sys.exit("学習ファイルが見つかりません")
-    except ValueError:
-        sys.exit("学習データ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"、\n 出力データのカラム名を\"is_toxic\"と指定してください。")
+    if "comment_text" in train_df.columns and "is_toxic" in train_df.columns:
+        pass
+    else:
+        sys.exit("学習データ内のカラム名が正しくありません。入力テキストのカラム名を \
+                 \"comment_text\"、\n 出力データのカラム名を\"is_toxic\"と指定してください。")
     
     seq_maxlen = 300
     embed_size = 300
@@ -96,13 +99,16 @@ def train(train_path):
         pickle.dump(history.history, handle)
 
 def pred(test_path):
-    try:
+    if os.path.exists(test_path):
         print("テストファイルを読み込んでいます")
-        test_df = pd.read_csv(test_path, usecols=["comment_text"])
-    except FileNotFoundError:
+        test_df = pd.read_csv(test_path)
+    else:
         sys.exit("テストファイルが見つかりません")
-    except ValueError:
-        sys.exit("テストファイルデータ内のカラム名が正しくありません。入力テキストのカラム名を\"comment_text\"と指定してください。")
+    if "comment_text" in test_df.columns:
+        pass
+    else:
+        sys.exit("テストファイルデータ内のカラム名が正しくありません。\
+                 入力テキストのカラム名を\"comment_text\"と指定してください。")
     
     seq_maxlen = 300
     embed_size = 300
@@ -122,7 +128,7 @@ def pred(test_path):
     batch_size=5000
     outputs = model.predict(X_test_dict, batch_size=batch_size, verbose=1)
     
-    print("テストデータの推論が終了しました。結果を保存しています。")
+    print("テストデータの推論が終了しました。ファイル名: output.csv として結果を保存しています。")
     test_df["is_toxic"] = outputs
     test_df.to_csv("output.csv", index=False)
 
@@ -236,7 +242,7 @@ def _get_coefs(word, *arr):
     """
     入力された*arr(str)にワードベクトルの数値以外の不純物が含まれていることがあるので，
     try: 数値データであればarr_fixedにappendする
-    except: 数値以外の不純物が混じっている場合は含めない
+    except: 数値以外の不純物が混じっている場合（floatへキャスト時にValueErrorする場合）は含めない
     """
     arr_fixed = []
     for arr_val in arr:
@@ -292,6 +298,7 @@ def _get_model(len_train, ftext_neo_weight, ftext_wiki_weight, num_words, seq_ma
 def _get_exp_decay(init, fin, steps): return (init / fin) ** (1 / (steps - 1)) - 1 
 
 def _get_test_feature(test_data, seq_maxlen=300):
+    print("コメントを分かち書きしています")
     if type(test_data) is not str:
         # DataFrame
         test_data["comment_text"] = test_data["comment_text"].apply(lambda text: _get_separeted(text))
@@ -301,7 +308,7 @@ def _get_test_feature(test_data, seq_maxlen=300):
         separeted_text = _get_separeted(test_data)
         test_np = np.array([separeted_text])
     try:
-        # 学習済みtokenizerのロード
+        print("学習済みtokenizerをロードしています")
         with open('tokenizer.pkl', 'rb') as handle:
             tokenizer = pickle.load(handle)
     except FileNotFoundError:
