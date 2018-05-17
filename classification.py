@@ -214,8 +214,12 @@ def _get_separeted(text):
     の IAMと管理 > 割り当て > Cloud Natural Language API Requests / 分 の割り当て制限量の増加をリクエストする．
     """
     document = types.Document(content=text, type=enums.Document.Type.PLAIN_TEXT)
-    syntax_response = client.analyze_syntax(document=document)
-    separeted_text = " ".join([s.text.content for s in syntax_response.tokens])
+    try:
+        syntax_response = client.analyze_syntax(document=document)
+    except google.api_core.exceptions.InvalidArgument:
+        separeted_text = "google.api_core.exceptions.InvalidArgument"
+    else:  
+        separeted_text = " ".join([s.text.content for s in syntax_response.tokens])
     time.sleep(0.1)
     
     return separeted_text
