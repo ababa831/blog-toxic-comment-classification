@@ -24,13 +24,14 @@
 学習済みモデル付きのため、以下の手順で有害なコメントを分類できます。
 
 1. 本リポジトリをgit cloneします。
-2. [ここ](https://drive.google.com/open?id=0ByFQ96A4DgSPUm9wVWRLdm5qbmc)と[ここ](https://www.dropbox.com/s/7digqy9ag3b9xeu/ja.tar.gz?dl=0)から、学習済みの日本語版分散表現モデルをDLして、カレントディレクトリに置き、2種類のvecファイル名を`fast_neo.vec`, `fast_wiki.vec`に変更します。
-3. blog-toxic-comment-classificationディレクトリに移動して、`$ pip install -r requirements.txt`を実行し、必要なライブラリをインストールします。
-4. [問題設定](https://github.com/ababa893/blog-toxic-comment-classification#%E5%95%8F%E9%A1%8C%E8%A8%AD%E5%AE%9A)（次項）を参考に、テストデータ(.csv)を用意します。
-5. `$ python classification.py --pred <テストデータのパス>`を実行します。
-6. 結果がcsvファイルとして、同ディレクトリ内に出力されます。
+2. [ここ](https://drive.google.com/open?id=0ByFQ96A4DgSPUm9wVWRLdm5qbmc)と[ここ](https://www.dropbox.com/s/7digqy9ag3b9xeu/ja.tar.gz?dl=0)から、学習済みの日本語版分散表現モデルをDLして、git cloneしたディレクトリに置き、2種類のvecファイル名を`fast_neo.vec`, `fast_wiki.vec`に変更します。
+3. [ここ](https://drive.google.com/open?id=1Bsx3y12Fu-afbScXEoYQzA5WKqlibhWG)から学習済みモデルをダウンロードして，git cloneしたディレクトリに置きます．
+4. blog-toxic-comment-classificationディレクトリに移動して、`$ pip install -r requirements.txt`を実行し、必要なライブラリをインストールします。
+5. [問題設定](https://github.com/ababa893/blog-toxic-comment-classification#%E5%95%8F%E9%A1%8C%E8%A8%AD%E5%AE%9A)（次項）を参考に、テストデータ(.csv)を用意します。
+6. `$ python classification.py --pred <テストデータのパス>`を実行します。
+7. 結果がcsvファイルとして、同ディレクトリ内に出力されます。
 
-手順5において、次のように1コメントずつ指定することもできます。
+手順6において、次のように1コメントずつ指定することもできます。
 
 ```
 $ python classification.py --pred-text "キモいブスばっか全員消えろ"
@@ -110,6 +111,38 @@ Kerasの[Tokenizer](https://keras.io/ja/preprocessing/text/)クラスを用い�
 <br>
 
 ## 結果
+
+### データ
+某有名まとめブログから，最近の記事に対するコメント約13万を抽出したものを，学習データとして使用しました．
+
+### 計算環境
+- Windows10 64bit
+- NVIDIA GeForce GTX1060 6GB
+
+### パラメータ
+ハイパーパラメータはチューニングしていません．仮に以下の値を設定しました．
+- learning rate 初期値 0.002, 最終値 0.0002
+- ベクトル化したコメントの次元数 300
+- Embedding層 出力の次元数 300
+- バッチサイズ 500
+- dropout 0.5
+- LSTM, GRU 出力の次元数 40
+
+### 計算結果
+学習データを全体の95%，バリデーションデータを5%，epochs=2として学習を行った結果は以下の通りです．
+
+```
+Train on 131854 samples, validate on 6940 samples
+Epoch 1/2
+131854/131854 [==============================] - 97s 732us/step - loss: 0.0109 - acc: 0.6767 - val_loss: 0.1627 - val_acc: 0.9594
+6940/6940 [==============================] - 2s 223us/step
+¥n ROC-AUC - epoch: 1 - score: 0.987343
+
+Epoch 2/2
+131854/131854 [==============================] - 94s 713us/step - loss: 0.0033 - acc: 0.9515 - val_loss: 0.1561 - val_acc: 0.9454
+6940/6940 [==============================] - 1s 192us/step
+¥n ROC-AUC - epoch: 2 - score: 0.990649
+```
 
 ## TODO
 
