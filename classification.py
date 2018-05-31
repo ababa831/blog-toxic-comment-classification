@@ -292,8 +292,7 @@ def _get_model(len_train, ftext_neo_weight, ftext_wiki_weight, num_words, seq_ma
     # 重み減数の設定
     steps = int(len_train / batch_size) * epochs
     lr_init, lr_fin = 0.002, 0.0002
-    lr_decay = _get_exp_decay(lr_init, lr_fin, steps)
-    optimizer_adam = Adam(lr=0.002, decay=lr_decay)
+    optimizer_adam = Adam(lr=0.002, decay=_get_exp_decay(lr_init, lr_fin, steps))
 
     model.compile(loss='binary_crossentropy',
                   optimizer=optimizer_adam,
@@ -301,7 +300,8 @@ def _get_model(len_train, ftext_neo_weight, ftext_wiki_weight, num_words, seq_ma
 
     return model
 
-def _get_exp_decay(init, fin, steps): return (init / fin) ** (1 / (steps - 1)) - 1 
+def _get_exp_decay(init, fin, steps): 
+    return (init / fin) ** (1 / (steps - 1)) - 1 
 
 def _get_test_feature(test_data, seq_maxlen=300):
     print("コメントを分かち書きしています")
